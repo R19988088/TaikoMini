@@ -70,7 +70,6 @@ jobs:
     
     - name: Build APK
       run: |
-        cd "216 github"
         buildozer android debug
       env:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
@@ -79,12 +78,12 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: TaikoMini-APK-${{ github.run_number }}
-        path: "216 github/bin/*.apk"
+        path: "bin/*.apk"
     
     - name: Create Release
       if: github.event_name == 'release'
       uses: softprops/action-gh-release@v1
       with:
-        files: "216 github/bin/*.apk"
+        files: "bin/*.apk"
         draft: false
         prerelease: false
