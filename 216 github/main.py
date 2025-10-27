@@ -7,215 +7,242 @@ TaikoMini - Android 太鼓达人小游戏
 
 import os
 import sys
-import pygame
-import json
+import traceback
 from pathlib import Path
 
-# Android 适配
+# Android 特殊处理
+def setup_android_environment():
+    """设置 Android 环境"""
+    if hasattr(sys, 'getandroidapp'):
+        # 禁用垃圾回收以提高性能
+        import gc
+        gc.disable()
+        
+        # 设置环境变量
+        os.environ['SDL_VIDEO_ALLOW_SCREENSAVER'] = '1'
+        os.environ['SDL_RENDER_VSYNC'] = '1'
+        
+        print("[ANDROID] Environment configured")
+
 def get_android_storage_path():
     """获取 Android 存储路径"""
     if hasattr(sys, 'getandroidapp'):
-        # Android 环境
-        android_app = sys.getandroidapp()
-        return android_app.getExternalFilesDir(None)
-    else:
-        # 开发环境
-        return Path.home() / "TaikoMini"
+        try:
+            android_app = sys.getandroidapp()
+            storage_dir = android_app.getExternalFilesDir(None)
+            if storage_dir:
+                return Path(storage_dir)
+        except Exception as e:
+            print(f"[ERROR] Failed to get Android storage: {e}")
+    
+    # 开发环境回退
+    return Path.home() / "TaikoMini"
 
-def check_android_permissions():
-    """检查 Android 权限"""
-    if hasattr(sys, 'getandroidapp'):
-        android_app = sys.getandroidapp()
-        # 请求存储权限
-        android_app.requestPermissions(['android.permission.READ_EXTERNAL_STORAGE',
-                                      'android.permission.WRITE_EXTERNAL_STORAGE',
-                                      'android.permission.READ_MEDIA_AUDIO'])
-
-class TaikoMini:
-    def __init__(self):
-        pygame.init()
-        
-        # 设置屏幕尺寸 (Android 竖屏)
-        self.screen_width = 720
-        self.screen_height = 1280
-        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("TaikoMini")
-        
-        # 设置时钟
-        self.clock = pygame.time.Clock()
-        self.fps = 60
-        
-        # 游戏状态
-        self.running = True
-        self.game_state = "menu"  # menu, playing, paused
-        
-        # 颜色定义
-        self.colors = {
-            'black': (0, 0, 0),
-            'white': (255, 255, 255),
-            'red': (255, 0, 0),
-            'blue': (0, 0, 255),
-            'green': (0, 255, 0),
-            'yellow': (255, 255, 0),
-            'gray': (128, 128, 128)
-        }
-        
-        # 字体
-        self.font_large = pygame.font.Font(None, 48)
-        self.font_medium = pygame.font.Font(None, 32)
-        self.font_small = pygame.font.Font(None, 24)
-        
-        # 存储路径
-        self.storage_path = get_android_storage_path()
-        self.songs_path = self.storage_path / "songs"
-        
-        # 创建目录
-        self.songs_path.mkdir(parents=True, exist_ok=True)
-        
-        # 检查权限
-        check_android_permissions()
-        
-        # 加载歌曲列表
-        self.songs = self.load_songs()
-        
-    def load_songs(self):
-        """加载歌曲列表"""
-        songs = []
-        if self.songs_path.exists():
-            for song_dir in self.songs_path.iterdir():
-                if song_dir.is_dir():
-                    tja_file = song_dir / f"{song_dir.name}.tja"
-                    ogg_file = song_dir / f"{song_dir.name}.ogg"
-                    if tja_file.exists() and ogg_file.exists():
-                        songs.append({
-                            'name': song_dir.name,
-                            'path': song_dir,
-                            'tja': tja_file,
-                            'ogg': ogg_file
-                        })
-        return songs
-    
-    def handle_events(self):
-        """处理事件"""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if self.game_state == "playing":
-                        self.game_state = "paused"
-                    elif self.game_state == "paused":
-                        self.game_state = "playing"
-                    else:
-                        self.running = False
-                elif event.key == pygame.K_SPACE:
-                    if self.game_state == "menu":
-                        self.start_game()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if self.game_state == "menu":
-                    self.start_game()
-    
-    def start_game(self):
-        """开始游戏"""
-        if self.songs:
-            self.game_state = "playing"
-            # 这里可以添加选择歌曲的逻辑
-        else:
-            self.show_no_songs_message()
-    
-    def show_no_songs_message(self):
-        """显示没有歌曲的消息"""
-        # 简单的消息显示，实际应该用UI界面
-        pass
-    
-    def draw_menu(self):
-        """绘制主菜单"""
-        self.screen.fill(self.colors['black'])
-        
-        # 标题
-        title_text = self.font_large.render("TaikoMini", True, self.colors['white'])
-        title_rect = title_text.get_rect(center=(self.screen_width//2, 200))
-        self.screen.blit(title_text, title_rect)
-        
-        # 说明文字
-        if self.songs:
-            info_text = self.font_medium.render(f"找到 {len(self.songs)} 首歌曲", True, self.colors['green'])
-            info_rect = info_text.get_rect(center=(self.screen_width//2, 400))
-            self.screen.blit(info_text, info_rect)
-            
-            start_text = self.font_medium.render("点击屏幕开始游戏", True, self.colors['yellow'])
-            start_rect = start_text.get_rect(center=(self.screen_width//2, 500))
-            self.screen.blit(start_text, start_rect)
-        else:
-            no_songs_text = self.font_medium.render("没有找到歌曲文件", True, self.colors['red'])
-            no_songs_rect = no_songs_text.get_rect(center=(self.screen_width//2, 400))
-            self.screen.blit(no_songs_text, no_songs_rect)
-            
-            help_text = self.font_small.render("请将歌曲文件放入:", True, self.colors['gray'])
-            help_rect = help_text.get_rect(center=(self.screen_width//2, 450))
-            self.screen.blit(help_text, help_rect)
-            
-            path_text = self.font_small.render(str(self.songs_path), True, self.colors['gray'])
-            path_rect = path_text.get_rect(center=(self.screen_width//2, 480))
-            self.screen.blit(path_text, path_rect)
-        
-        # 退出提示
-        exit_text = self.font_small.render("按 ESC 键退出", True, self.colors['gray'])
-        exit_rect = exit_text.get_rect(center=(self.screen_width//2, self.screen_height - 100))
-        self.screen.blit(exit_text, exit_rect)
-    
-    def draw_game(self):
-        """绘制游戏界面"""
-        self.screen.fill(self.colors['black'])
-        
-        # 简单的游戏界面
-        if self.game_state == "playing":
-            game_text = self.font_large.render("游戏进行中...", True, self.colors['white'])
-            game_rect = game_text.get_rect(center=(self.screen_width//2, self.screen_height//2))
-            self.screen.blit(game_text, game_rect)
-            
-            pause_text = self.font_small.render("按 ESC 暂停", True, self.colors['gray'])
-            pause_rect = pause_text.get_rect(center=(self.screen_width//2, self.screen_height//2 + 50))
-            self.screen.blit(pause_text, pause_rect)
-            
-        elif self.game_state == "paused":
-            pause_text = self.font_large.render("游戏暂停", True, self.colors['yellow'])
-            pause_rect = pause_text.get_rect(center=(self.screen_width//2, self.screen_height//2))
-            self.screen.blit(pause_text, pause_rect)
-            
-            resume_text = self.font_small.render("按 ESC 继续", True, self.colors['gray'])
-            resume_rect = resume_text.get_rect(center=(self.screen_width//2, self.screen_height//2 + 50))
-            self.screen.blit(resume_text, resume_rect)
-    
-    def draw(self):
-        """绘制界面"""
-        if self.game_state == "menu":
-            self.draw_menu()
-        else:
-            self.draw_game()
-        
-        pygame.display.flip()
-    
-    def run(self):
-        """主游戏循环"""
-        while self.running:
-            self.handle_events()
-            self.draw()
-            self.clock.tick(self.fps)
-        
-        pygame.quit()
-
-def main():
-    """主函数"""
+def log_to_android(message):
+    """在 Android 上记录日志"""
     try:
-        game = TaikoMini()
-        game.run()
-    except Exception as e:
-        print(f"游戏启动失败: {e}")
-        # 在 Android 上记录错误日志
         if hasattr(sys, 'getandroidapp'):
             android_app = sys.getandroidapp()
-            android_app.log(f"TaikoMini Error: {e}")
+            android_app.log(message)
+        print(message)
+    except Exception as e:
+        print(f"[LOG ERROR] {e}")
+
+def main():
+    """主函数 - 包含完整的错误处理"""
+    log_to_android("=== TaikoMini Starting ===")
+    
+    try:
+        # 1. 设置 Android 环境
+        setup_android_environment()
+        
+        # 2. 添加 lib 目录到路径
+        lib_path = Path(__file__).parent / 'lib'
+        if lib_path.exists():
+            sys.path.insert(0, str(lib_path))
+            log_to_android(f"[PATH] Added lib path: {lib_path}")
+        
+        # 3. 初始化 pygame
+        log_to_android("[INIT] Initializing pygame...")
+        import pygame
+        pygame.init()
+        
+        # 设置音频
+        try:
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+            log_to_android("[AUDIO] Mixer initialized")
+        except Exception as e:
+            log_to_android(f"[WARN] Mixer init failed: {e}")
+        
+        # 4. 获取存储路径
+        storage_path = get_android_storage_path()
+        songs_path = storage_path / "songs"
+        songs_path.mkdir(parents=True, exist_ok=True)
+        log_to_android(f"[STORAGE] Songs path: {songs_path}")
+        
+        # 5. 导入并运行游戏
+        log_to_android("[IMPORT] Importing game modules...")
+        
+        # 先尝试使用完整的游戏代码
+        try:
+            from lib.game import TaikoGame
+            from lib.song_select import SongSelectScreen
+            from lib.game_settings import GameSettings
+            
+            log_to_android("[IMPORT] Full game modules loaded")
+            
+            # 创建游戏设置
+            game_settings = GameSettings()
+            
+            # 查找歌曲
+            tja_folder = Path("songs")
+            if not tja_folder.exists():
+                # 尝试从应用资源加载
+                tja_folder = Path(__file__).parent / "taikomini" / "songs"
+            
+            log_to_android(f"[SONGS] Looking for songs in: {tja_folder}")
+            
+            if tja_folder.exists():
+                tja_files = list(tja_folder.glob("**/*.tja"))
+                log_to_android(f"[SONGS] Found {len(tja_files)} songs")
+                
+                if tja_files:
+                    # 创建窗口
+                    screen_width = 720
+                    screen_height = 1280
+                    screen = pygame.display.set_mode((screen_width, screen_height))
+                    pygame.display.set_caption("TaikoMini")
+                    
+                    # 创建歌曲选择界面
+                    song_select = SongSelectScreen(screen, screen_width, screen_height, tja_files, game_settings)
+                    
+                    # 进入主循环
+                    log_to_android("[GAME] Starting game loop...")
+                    song_select.run()
+                else:
+                    log_to_android("[ERROR] No songs found!")
+                    show_error_screen(pygame, "No songs found!")
+            else:
+                log_to_android(f"[ERROR] Songs folder not found: {tja_folder}")
+                show_error_screen(pygame, f"Songs folder not found!\n{tja_folder}")
+                
+        except ImportError as e:
+            log_to_android(f"[ERROR] Import failed: {e}")
+            import traceback
+            log_to_android(traceback.format_exc())
+            
+            # 回退到简化版本
+            log_to_android("[FALLBACK] Using simplified version...")
+            run_simplified_version(pygame, songs_path)
+        
+    except Exception as e:
+        error_msg = f"Fatal error: {e}\n{traceback.format_exc()}"
+        log_to_android(error_msg)
+        
+        # 尝试显示错误信息
+        try:
+            import pygame
+            show_error_screen(pygame, f"Error: {e}")
+        except:
+            pass
+        
+    finally:
+        try:
+            pygame.quit()
+        except:
+            pass
+        log_to_android("=== TaikoMini Exited ===")
+
+def show_error_screen(pygame, message):
+    """显示错误信息屏幕"""
+    try:
+        screen_width = 720
+        screen_height = 1280
+        screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.set_caption("TaikoMini - Error")
+        
+        clock = pygame.time.Clock()
+        font_large = pygame.font.Font(None, 48)
+        font_medium = pygame.font.Font(None, 32)
+        
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+            
+            screen.fill((0, 0, 0))
+            
+            # 显示错误消息
+            lines = message.split('\n')
+            y = 200
+            for line in lines:
+                text = font_medium.render(line, True, (255, 255, 255))
+                rect = text.get_rect(center=(screen_width//2, y))
+                screen.blit(text, rect)
+                y += 50
+            
+            # 显示提示
+            hint = font_medium.render("Press ESC to exit", True, (128, 128, 128))
+            hint_rect = hint.get_rect(center=(screen_width//2, screen_height - 100))
+            screen.blit(hint, hint_rect)
+            
+            pygame.display.flip()
+            clock.tick(30)
+    except Exception as e:
+        print(f"Error showing error screen: {e}")
+
+def run_simplified_version(pygame, songs_path):
+    """运行简化版本的游戏"""
+    try:
+        screen_width = 720
+        screen_height = 1280
+        screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.set_caption("TaikoMini")
+        
+        clock = pygame.time.Clock()
+        font_large = pygame.font.Font(None, 48)
+        font_medium = pygame.font.Font(None, 32)
+        font_small = pygame.font.Font(None, 24)
+        
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+            
+            screen.fill((0, 0, 0))
+            
+            # 显示标题
+            title = font_large.render("TaikoMini", True, (255, 255, 255))
+            title_rect = title.get_rect(center=(screen_width//2, 200))
+            screen.blit(title, title_rect)
+            
+            # 显示状态
+            status = font_medium.render("Game loaded successfully!", True, (0, 255, 0))
+            status_rect = status.get_rect(center=(screen_width//2, 400))
+            screen.blit(status, status_rect)
+            
+            # 显示路径
+            path_text = font_small.render(f"Songs: {songs_path}", True, (128, 128, 128))
+            path_rect = path_text.get_rect(center=(screen_width//2, 500))
+            screen.blit(path_text, path_rect)
+            
+            # 显示提示
+            hint = font_small.render("Press ESC to exit", True, (128, 128, 128))
+            hint_rect = hint.get_rect(center=(screen_width//2, screen_height - 100))
+            screen.blit(hint, hint_rect)
+            
+            pygame.display.flip()
+            clock.tick(30)
+    except Exception as e:
+        log_to_android(f"Simplified version error: {e}")
 
 if __name__ == "__main__":
     main()

@@ -17,14 +17,6 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 
-# Import android adapter for path resolution
-try:
-    from .android_adapter import get_adapter
-    _adapter = get_adapter()
-except:
-    _adapter = None
-
-
 class ResourceLoader:
     """
     资源加载器
@@ -39,18 +31,26 @@ class ResourceLoader:
         Initialize resource loader
         """
         # ==================== 资源路径 ====================
-        self.res_path = Path(__file__).parent / 'res'
+        # Android 适配：使用多个可能的路径
+        possible_res_paths = [
+            Path(__file__).parent / 'res',  # 开发环境
+            Path('.') / 'res',  # 当前目录
+            Path('.') / 'lib' / 'res',  # lib 子目录
+        ]
+        
+        self.res_path = None
+        for path in possible_res_paths:
+            if path.exists():
+                self.res_path = path
+                break
+        
+        if self.res_path is None:
+            # 如果没有找到，使用第一个作为默认值
+            self.res_path = possible_res_paths[0]
+        
         self.texture_path = self.res_path / 'Texture' / 'selectsongs'
         self.font_path = self.res_path / 'FZPangWaUltra-Regular.ttf'
-        
-        # 自定义资源文件夹 - 使用Android适配器获取正确路径
-        if _adapter and _adapter.is_android:
-            # Android: 使用SD卡路径
-            songs_folder = _adapter.get_songs_folder()
-            self.custom_resource_path = songs_folder / "Resource"
-        else:
-            # Desktop: 使用相对路径
-            self.custom_resource_path = Path("songs/Resource")
+        self.custom_resource_path = Path("songs/Resource")  # 自定义资源文件夹
         
         # ==================== 缓存 ====================
         self._diff_images_cache = None      # 难度图标缓存

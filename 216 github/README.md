@@ -24,13 +24,24 @@
 3. 安装 APK
 
 ### 方法2：源码构建
+
+⚠️ **注意**：Buildozer 不支持 Windows！需要使用 WSL2、虚拟机或 GitHub Actions。
+
+**🚀 最简单方法：使用 GitHub Actions（无需本地安装）**
+1. 推送代码到 GitHub
+2. 访问 Actions 标签，运行 "Build Android APK" 工作流
+3. 下载生成的 APK
+
+**💻 本地构建（推荐使用 WSL2）**
 ```bash
-# 安装 buildozer
+# 安装 buildozer（在 Linux/WSL2 中）
 pip install buildozer
 
 # 构建 APK
 buildozer android debug
 ```
+
+📖 **详细构建指南**：查看 [QUICK_START.md](QUICK_START.md) 或 [BUILD_GUIDE.md](BUILD_GUIDE.md)
 
 ## 使用说明
 
@@ -89,11 +100,36 @@ TaikoMini/
 
 ## 故障排除
 
+### ⚠️ APK 闪退问题
+
+如果安装后应用闪退，请查看 [DEBUG_GUIDE.md](DEBUG_GUIDE.md) 获取详细调试指南。
+
+**快速调试步骤：**
+
+1. **使用 ADB 查看日志**
+   ```bash
+   adb logcat | grep TaikoMini
+   ```
+
+2. **运行兼容性测试**
+   ```bash
+   python test_android_compatibility.py
+   ```
+
+3. **常见原因**
+   - 资源文件未正确包含
+   - Python 模块导入失败
+   - 字体加载失败
+   - 权限问题
+
+详细解决方案请参阅 [DEBUG_GUIDE.md](DEBUG_GUIDE.md)
+
 ### 常见问题
 
 1. **应用闪退**
-   - 检查是否授予了存储权限
-   - 确认歌曲文件格式正确
+   - 使用 ADB 查看日志：`adb logcat | grep TaikoMini`
+   - 查看 [DEBUG_GUIDE.md](DEBUG_GUIDE.md) 详细调试指南
+   - 运行 `python test_android_compatibility.py` 检查兼容性
 
 2. **找不到歌曲**
    - 确认歌曲文件放在正确位置
@@ -117,3 +153,4 @@ MIT License
 - 初始版本
 - 支持 Android 13-16
 - 基本的游戏功能
+
