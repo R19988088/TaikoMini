@@ -1,0 +1,46 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install buildozer
+      run: |
+        pip install buildozer cython
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+        
+    - name: Build APK
+      run: |
+        # 显示详细日志
+        buildozer android debug -v 2>&1 | tee build.log
+        
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: Build-Log
+        path: build.log
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: TaikoMini-APK
+        path: .buildozer/android/platform/build/dists/taikomini/bin/*.apk
+
