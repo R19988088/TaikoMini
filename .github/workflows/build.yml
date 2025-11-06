@@ -58,9 +58,26 @@ jobs:
         echo $KEYSTORE_B64 | base64 --decode > release.keystore
 
     - name: Build with Buildozer and Capture Error Log
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
       run: |
-        # Run buildozer and redirect any errors (stderr) to build_error.log
-        buildozer android release 2> build_error.log
+        # Inject secrets into the buildozer spec file for signing
+        sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
+        sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = $KEYSTORE_PASSWORD|" buildozer.spec
+        sed -i "s|^android.release_key_alias =.*|android.release_key_alias = $KEY_ALIAS|" buildozer.spec
+        sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = $KEY_ALIAS_PASSWORD|" buildozer.spec
+        
+        # Run buildozer, redirecting stderr to a temporary file.
+        buildozer android release 2> build_stderr.log
+        EXIT_CODE=$?
+        
+        # Filter the stderr log for lines containing common error keywords.
+        grep -iE "error|fail|exception|traceback|fatal|permission denied|not found|broken" build_stderr.log > build_error.log || true
+        
+        # Exit with the original exit code from buildozer to correctly report success or failure.
+        exit $EXIT_CODE
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
