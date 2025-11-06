@@ -36,8 +36,6 @@ jobs:
         rm commandlinetools-linux-9477386_latest.zip
 
         # Correctly restructure the directories to match what sdkmanager expects.
-        # The unzipped folder is '$SDK_PATH/cmdline-tools'.
-        # We must create a new parent 'cmdline-tools' that contains a 'latest' folder.
         mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
         mkdir $SDK_PATH/cmdline-tools
         mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
@@ -63,7 +61,7 @@ jobs:
       run: |
         echo $KEYSTORE_B64 | base64 --decode > release.keystore
 
-    - name: Build with Buildozer and Capture Error Log
+    - name: Build with Buildozer and Capture Full Log
       env:
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -75,16 +73,9 @@ jobs:
         sed -i "s|^android.release_key_alias =.*|android.release_key_alias = $KEY_ALIAS|" buildozer.spec
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = $KEY_ALIAS_PASSWORD|" buildozer.spec
         
-        # Run buildozer, saving all output to a log file
+        # Run buildozer, saving all output (stdout and stderr) to a log file
         buildozer android release > build_output.log 2>&1
-        EXIT_CODE=$?
-        
-        # Always create the error log, even if it's empty
-        touch build_error.log
-        # Filter the full log for common error keywords.
-        grep -iE "error|fail|exception|traceback|fatal|permission denied|not found|broken|deprecated|warning|could not" build_output.log > build_error.log || true
-        
-        exit $EXIT_CODE
+        exit $?
 
     - name: Upload APK
       if: success()
@@ -93,9 +84,9 @@ jobs:
         name: taikomini-release
         path: bin/*.apk
 
-    - name: Upload Error Log on Failure
+    - name: Upload Full Build Log on Failure
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: build-error-log
-        path: build_error.log
+        name: full-build-log
+        path: build_output.log
