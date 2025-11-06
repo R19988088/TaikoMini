@@ -24,32 +24,38 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Manually Set Up Android SDK in Buildozer's Directory
+    - name: Manually Set Up Android SDK and Capture Log
       run: |
-        # Define the path for the SDK
-        SDK_PATH="/home/runner/.buildozer/android/platform/android-sdk"
-        mkdir -p $SDK_PATH
+        # Run the entire setup in a block and redirect all output to a log file
+        {
+          echo "--- Setting up Android SDK ---"
+          SDK_PATH="/home/runner/.buildozer/android/platform/android-sdk"
+          mkdir -p $SDK_PATH
 
-        # Download and unzip command line tools
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
-        rm commandlinetools-linux-9477386_latest.zip
+          echo "--- Downloading SDK ---"
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
+          rm commandlinetools-linux-9477386_latest.zip
 
-        # Buildozer is looking for sdkmanager in a deprecated path.
-        # We will create this old path structure and move the tools there.
-        # This ensures compatibility.
-        mkdir -p $SDK_PATH/tools/bin
-        mv $SDK_PATH/cmdline-tools/* $SDK_PATH/tools/bin/
-        
-        # Set environment variables for future steps
-        echo "ANDROID_SDK_ROOT=$SDK_PATH" >> $GITHUB_ENV
-        
-        # Define the path to the sdkmanager for clarity
-        SDK_MANAGER="$SDK_PATH/tools/bin/sdkmanager"
-        
-        # Accept licenses and install packages
-        yes | $SDK_MANAGER --licenses
-        $SDK_MANAGER "platforms;android-34" "build-tools;34.0.0"
+          echo "--- Restructuring SDK directory ---"
+          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
+          # We just need to rename it to 'tools' to match the path buildozer expects.
+          mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
+
+          echo "--- Setting environment variables ---"
+          echo "ANDROID_SDK_ROOT=$SDK_PATH" >> $GITHUB_ENV
+          
+          SDK_MANAGER="$SDK_PATH/tools/bin/sdkmanager"
+          echo "SDK Manager path: $SDK_MANAGER"
+
+          echo "--- Accepting licenses ---"
+          yes | $SDK_MANAGER --licenses
+
+          echo "--- Installing platform-tools and build-tools ---"
+          $SDK_MANAGER "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          echo "--- SDK setup complete ---"
+        } > sdk_setup.log 2>&1
+        exit $?
 
     - name: Install dependencies
       run: |
@@ -85,9 +91,12 @@ jobs:
         name: taikomini-release
         path: bin/*.apk
 
-    - name: Upload Full Build Log on Failure
+    - name: Upload Logs on Failure
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: full-build-log
-        path: build_output.log
+        name: build-logs
+        path: |
+          sdk_setup.log
+          build_output.log
+        if-no-files-found: ignore
