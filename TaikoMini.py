@@ -19,6 +19,7 @@ from lib.tja import TJAParser
 from lib.game import TaikoGame
 from lib.song_select import SongSelectScreen
 from lib.game_settings import GameSettings
+from lib.folder_utils import select_song_folder
 # from lib.memory_monitor import get_monitor  # 已禁用 - 影响性能
 
 # Initialize Pygame
@@ -80,12 +81,21 @@ def main():
     # 初始化游戏设置
     game_settings = GameSettings()
     
+    # Initialize ConfigManager
+    from lib.config_manager import ConfigManager
+    config_manager = ConfigManager()
+
     # Find songs folder
-    tja_folder = Path("songs")
-    if not tja_folder.exists():
-        print("Error: 'songs' folder not found!")
-        print("Please create a 'songs' folder and add .tja files with .ogg audio")
-        return
+    tja_folder_str = config_manager.get_song_folder()
+    if not tja_folder_str or not Path(tja_folder_str).exists():
+        print("Song folder not set or not found. Please select one.")
+        tja_folder_str = select_song_folder()
+        if not tja_folder_str:
+            print("No folder selected. Exiting.")
+            return
+        config_manager.set_song_folder(tja_folder_str)
+
+    tja_folder = Path(tja_folder_str)
     
     # Find all tja files (including subfolders)
     tja_files = list(tja_folder.glob("**/*.tja"))

@@ -23,10 +23,10 @@ class ConfigManager:
         初始化配置管理器
         
         参数:
-            config_path: 配置文件路径，默认为 songs/config.ini
+            config_path: 配置文件路径，默认为 config.ini
         """
         if config_path is None:
-            config_path = Path("songs/config.ini")
+            config_path = Path("config.ini")
         
         self.config_path = config_path
         self.config = configparser.ConfigParser()
@@ -41,6 +41,10 @@ class ConfigManager:
         """确保配置文件存在，如果不存在则创建默认配置"""
         if not self.config_path.exists():
             # 创建默认配置
+            self.config['Paths'] = {
+                'song_folder': ''
+            }
+            
             self.config['CategoryColors'] = {
                 '流行音乐': '#42C0D2',
                 'VOCALOID音乐': '#CDCFDF',
@@ -102,6 +106,19 @@ class ConfigManager:
         except Exception as e:
             print(f"Error saving config: {e}")
     
+    def get_song_folder(self) -> Optional[str]:
+        """获取歌曲文件夹路径"""
+        if 'Paths' in self.config:
+            return self.config['Paths'].get('song_folder')
+        return None
+
+    def set_song_folder(self, path: str):
+        """设置歌曲文件夹路径"""
+        if 'Paths' not in self.config:
+            self.config['Paths'] = {}
+        self.config['Paths']['song_folder'] = path
+        self.save_config()
+
     def get_category_info(self, category: str) -> Optional[Tuple[Optional[Tuple[int, int, int]], Optional[str], Optional[str]]]:
         """
         获取分类信息（颜色、b1图片文件名、genre_bg图片文件名）
