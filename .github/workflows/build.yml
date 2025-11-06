@@ -18,15 +18,31 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Set up Java and Android SDK
+    - name: Set up Java
       uses: actions/setup-java@v2
       with:
         distribution: 'zulu'
         java-version: '11'
-    - run: |
-        sudo apt-get update -y
-        sudo apt-get install -y android-sdk
-        export ANDROID_HOME=/usr/lib/android-sdk
+
+    - name: Set up Android SDK
+      run: |
+        # Download and unzip Android SDK command line tools
+        # Using a fixed version for reproducibility
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip commandlinetools-linux-9477386_latest.zip -d $HOME/android-sdk
+        rm commandlinetools-linux-9477386_latest.zip
+        
+        # Set environment variables for future steps via GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+        
+        # The unzipped folder is cmdline-tools, but sdkmanager expects cmdline-tools/latest
+        mkdir -p $HOME/android-sdk/cmdline-tools/latest
+        mv $HOME/android-sdk/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
+        
+        # Add sdkmanager to PATH for the current step
+        export PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin
+        
+        # Accept licenses and install packages
         yes | sdkmanager --licenses
         sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
