@@ -35,16 +35,17 @@ jobs:
         unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
         rm commandlinetools-linux-9477386_latest.zip
 
-        # Correctly restructure the directories to match what sdkmanager expects.
-        mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
-        mkdir $SDK_PATH/cmdline-tools
-        mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
+        # Buildozer is looking for sdkmanager in a deprecated path.
+        # We will create this old path structure and move the tools there.
+        # This ensures compatibility.
+        mkdir -p $SDK_PATH/tools/bin
+        mv $SDK_PATH/cmdline-tools/* $SDK_PATH/tools/bin/
         
         # Set environment variables for future steps
         echo "ANDROID_SDK_ROOT=$SDK_PATH" >> $GITHUB_ENV
         
         # Define the path to the sdkmanager for clarity
-        SDK_MANAGER="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
+        SDK_MANAGER="$SDK_PATH/tools/bin/sdkmanager"
         
         # Accept licenses and install packages
         yes | $SDK_MANAGER --licenses
