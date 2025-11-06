@@ -1,0 +1,11 @@
+*.pyc
+__pycache__/
+.cache/
+venv/
+*.apk
+*.aab
+build/
+dist/
+bin/
+.buildozer/
+*.spec
