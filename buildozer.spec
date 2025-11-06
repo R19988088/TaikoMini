@@ -8,7 +8,6 @@ version = 0.1
 requirements = python3,pygame,numpy,plyer,android
 orientation = landscape
 fullscreen = 1
-android.sdk = 34
 android.api = 34
 android.build_tools_version = 34.0.0
 android.ndk_version = 25b

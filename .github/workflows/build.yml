@@ -24,27 +24,29 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Set up Android SDK
+    - name: Manually Set Up Android SDK in Buildozer's Directory
       run: |
-        # Download and unzip Android SDK command line tools
+        # Create the exact directory structure that buildozer expects.
+        BUILDOZER_SDK_PATH="/home/runner/.buildozer/android/platform/android-sdk"
+        mkdir -p $BUILDOZER_SDK_PATH
+
+        # Download and unzip Android SDK command line tools directly into it.
         wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip -d $HOME/android-sdk
+        unzip commandlinetools-linux-9477386_latest.zip -d $BUILDOZER_SDK_PATH
         rm commandlinetools-linux-9477386_latest.zip
         
-        # The unzipped folder is $HOME/android-sdk/cmdline-tools.
-        # We need to rename it to 'latest' and put it inside a 'cmdline-tools' parent
-        # to match the structure expected by sdkmanager.
-        mv $HOME/android-sdk/cmdline-tools $HOME/android-sdk/cmdline-tools-temp
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        mv $HOME/android-sdk/cmdline-tools-temp $HOME/android-sdk/cmdline-tools/latest
+        # The tools are now in $BUILDOZER_SDK_PATH/cmdline-tools.
+        # We need to create the 'latest' subdirectory and move them there.
+        mkdir -p $BUILDOZER_SDK_PATH/cmdline-tools/latest
+        mv $BUILDOZER_SDK_PATH/cmdline-tools/* $BUILDOZER_SDK_PATH/cmdline-tools/latest/
         
-        # Set environment variables for future steps
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        export PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin
+        # Set environment variables for future steps to use this SDK
+        echo "ANDROID_SDK_ROOT=$BUILDOZER_SDK_PATH" >> $GITHUB_ENV
+        export PATH=$PATH:$BUILDOZER_SDK_PATH/cmdline-tools/latest/bin
         
-        # Accept licenses and install packages
-        yes | sdkmanager --licenses
-        sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        # Accept licenses and install packages using the sdkmanager from the correct path
+        yes | $BUILDOZER_SDK_PATH/cmdline-tools/latest/bin/sdkmanager --licenses
+        $BUILDOZER_SDK_PATH/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
     - name: Install dependencies
       run: |
@@ -63,23 +65,25 @@ jobs:
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
       run: |
-        # Inject secrets into the buildozer spec file for signing
+        # Inject secrets for signing
         sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
         sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = $KEYSTORE_PASSWORD|" buildozer.spec
         sed -i "s|^android.release_key_alias =.*|android.release_key_alias = $KEY_ALIAS|" buildozer.spec
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = $KEY_ALIAS_PASSWORD|" buildozer.spec
         
-        # Run buildozer, redirecting stderr to a temporary file.
-        buildozer android release 2> build_stderr.log
+        # Run buildozer, saving all output to a log file
+        buildozer android release > build_output.log 2>&1
         EXIT_CODE=$?
         
-        # Filter the stderr log for lines containing common error keywords.
-        grep -iE "error|fail|exception|traceback|fatal|permission denied|not found|broken" build_stderr.log > build_error.log || true
+        # Always create the error log, even if it's empty
+        touch build_error.log
+        # Filter the full log for common error keywords.
+        grep -iE "error|fail|exception|traceback|fatal|permission denied|not found|broken|deprecated|warning|could not" build_output.log > build_error.log || true
         
-        # Exit with the original exit code from buildozer to correctly report success or failure.
         exit $EXIT_CODE
 
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: taikomini-release
