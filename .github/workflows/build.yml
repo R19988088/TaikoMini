@@ -35,10 +35,12 @@ jobs:
         unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
         rm commandlinetools-linux-9477386_latest.zip
 
-        # The tools are now in an unzipped folder named 'cmdline-tools'.
-        # We need to create the 'latest' subdirectory and move the *contents* into it.
-        mkdir -p $SDK_PATH/cmdline-tools/latest
-        mv $SDK_PATH/cmdline-tools/* $SDK_PATH/cmdline-tools/latest/
+        # Correctly restructure the directories to match what sdkmanager expects.
+        # The unzipped folder is '$SDK_PATH/cmdline-tools'.
+        # We must create a new parent 'cmdline-tools' that contains a 'latest' folder.
+        mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
+        mkdir $SDK_PATH/cmdline-tools
+        mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
         
         # Set environment variables for future steps
         echo "ANDROID_SDK_ROOT=$SDK_PATH" >> $GITHUB_ENV
