@@ -10,6 +10,7 @@ orientation = landscape
 fullscreen = 1
 android.api = 34
 android.build_tools_version = 34.0.0
+android.ndk_version = 25b
 android.minapi = 21
 android.archs = arm64-v8a
 android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,VIBRATE
