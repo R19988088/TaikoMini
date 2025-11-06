@@ -38,24 +38,27 @@ jobs:
           rm commandlinetools-linux-9477386_latest.zip
 
           echo "--- Restructuring SDK directory ---"
-          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
-          # We just need to rename it to 'tools' to match the path buildozer expects.
+          # Rename the unzipped 'cmdline-tools' to 'tools' to match the path buildozer expects.
           mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
 
+          echo "--- Verifying directory structure ---"
+          ls -l $SDK_PATH
+          ls -l $SDK_PATH/tools
+
           echo "--- Setting environment variables ---"
-          echo "ANDROID_SDK_ROOT=$SDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV # Use ANDROID_HOME for buildozer
           
-          SDK_MANAGER="$SDK_PATH/tools/bin/sdkmanager"
-          echo "SDK Manager path: $SDK_MANAGER"
+          SDK_MANAGER_PATH="$SDK_PATH/tools/bin/sdkmanager"
+          echo "Expected SDK Manager path: $SDK_MANAGER_PATH"
 
           echo "--- Accepting licenses ---"
-          yes | $SDK_MANAGER --licenses
+          yes | $SDK_MANAGER_PATH --licenses
 
           echo "--- Installing platform-tools and build-tools ---"
-          $SDK_MANAGER "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          $SDK_MANAGER_PATH "platforms;android-34" "build-tools;34.0.0" "platform-tools"
           echo "--- SDK setup complete ---"
         } > sdk_setup.log 2>&1
-        exit $?
+        exit ${PIPESTATUS[0]}
 
     - name: Install dependencies
       run: |
@@ -81,8 +84,8 @@ jobs:
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = $KEY_ALIAS_PASSWORD|" buildozer.spec
         
         # Run buildozer, saving all output (stdout and stderr) to a log file
-        buildozer android release > build_output.log 2>&1
-        exit $?
+        buildozer -v android release > build_output.log 2>&1
+        exit ${PIPESTATUS[0]}
 
     - name: Upload APK
       if: success()
