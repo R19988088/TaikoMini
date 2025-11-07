@@ -24,9 +24,10 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Manually Set Up Android SDK
+    - name: Set Up Android SDK in Buildozer's Expected Location
       run: |
-        SDK_PATH="/home/runner/android-sdk"
+        # Use Buildozer's expected SDK path
+        SDK_PATH="/home/runner/.buildozer/android/platform/android-sdk"
         mkdir -p $SDK_PATH
 
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
