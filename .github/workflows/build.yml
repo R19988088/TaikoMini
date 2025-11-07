@@ -57,17 +57,39 @@ jobs:
       run: |
         keytool -genkey -v -keystore release.keystore -alias taikomini -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=TaikoMini, OU=Dev, O=TaikoMini, L=City, S=State, C=CN"
 
-    - name: Build with Buildozer
-      continue-on-error: true
+    - name: Configure Buildozer
       run: |
         sudo chown -R $(whoami) .
-
         sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
         sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = 123456|" buildozer.spec
         sed -i "s|^android.release_key_alias =.*|android.release_key_alias = taikomini|" buildozer.spec
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = 123456|" buildozer.spec
-        
+
+    - name: Build with Buildozer
+      run: |
+        set -o pipefail
         buildozer -v android release 2>&1 | tee build_output.log
+      continue-on-error: true
+
+    - name: Check Build Output
+      if: always()
+      run: |
+        echo "=== Checking build results ==="
+        ls -la
+        if [ -d "bin" ]; then
+          echo "=== bin/ directory contents ==="
+          ls -la bin/
+        else
+          echo "=== bin/ directory not found ==="
+        fi
+        if [ -f "build_output.log" ]; then
+          echo "=== build_output.log size ==="
+          wc -l build_output.log
+          echo "=== Last 100 lines of build_output.log ==="
+          tail -100 build_output.log
+        else
+          echo "=== build_output.log not found ==="
+        fi
 
     - name: Upload APK
       if: success()
@@ -76,7 +98,7 @@ jobs:
         name: taikomini-release
         path: bin/*.apk
 
-    - name: Upload Build Log (Always)
+    - name: Upload Build Log
       if: always()
       uses: actions/upload-artifact@v4
       with:
