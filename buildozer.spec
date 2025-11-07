@@ -18,6 +18,10 @@ android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,VIBRATE
 [buildozer]
 log_level = 2
 warn_on_root = 1
+android.sdk_path = /home/runner/android-sdk
+android.ndk_path = /home/runner/android-ndk
+android.accept_sdk_license = False
+android.skip_update = True
 android.release_key_store =
 android.release_key_store_password =
 android.release_key_alias =
