@@ -37,9 +37,12 @@ jobs:
           unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
           rm commandlinetools-linux-9477386_latest.zip
 
-          echo "--- Step 1: Creating modern '/latest' structure for sdkmanager ---"
-          mkdir -p $SDK_PATH/cmdline-tools/latest
-          mv $SDK_PATH/cmdline-tools/* $SDK_PATH/cmdline-tools/latest/
+          echo "--- Step 1: Create the modern '/latest' structure for sdkmanager ---"
+          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
+          # We rename it to 'latest' and then move it inside a *new* 'cmdline-tools' parent.
+          mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
+          mkdir $SDK_PATH/cmdline-tools
+          mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
           
           SDK_MANAGER_PATH="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
           echo "SDK Manager path for setup: $SDK_MANAGER_PATH"
@@ -48,8 +51,15 @@ jobs:
           yes | $SDK_MANAGER_PATH --licenses
           $SDK_MANAGER_PATH "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
-          echo "--- Step 2: Restructuring for old buildozer - renaming to '/tools' ---"
-          mv $SDK_PATH/cmdline-tools/latest $SDK_PATH/tools
+          echo "--- Step 2: Restructure for old buildozer - rename to '/tools' ---"
+          # Buildozer/p4a expects the tools to be in a top-level 'tools' directory.
+          # So, we rename the 'cmdline-tools/latest' directory to 'tools'.
+          # First, move the contents up one level to get rid of 'latest'.
+          mv $SDK_PATH/cmdline-tools/latest/* $SDK_PATH/cmdline-tools/
+          rm -rf $SDK_PATH/cmdline-tools/latest
+          # Now, rename 'cmdline-tools' to 'tools'.
+          mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
+
 
           echo "--- Setting final environment variables ---"
           echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
