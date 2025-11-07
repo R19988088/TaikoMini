@@ -29,36 +29,23 @@ jobs:
         # Run the entire setup in a block and redirect all output to a log file
         {
           echo "--- Setting up Android SDK ---"
-          SDK_PATH="/home/runner/.buildozer/android/platform/android-sdk"
+          SDK_PATH="/home/runner/android-sdk" # Use a simpler, non-buildozer path
           mkdir -p $SDK_PATH
 
-          echo "--- Downloading SDK ---"
+          echo "--- Downloading SDK command-line tools ---"
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
           rm commandlinetools-linux-9477386_latest.zip
 
-          echo "--- Restructuring SDK directory ---"
-          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
-          # We just need to rename it to 'tools' to match the path buildozer expects.
-          mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
-
-          echo "--- Verifying directory structure ---"
-          ls -l $SDK_PATH
-          if [ ! -d "$SDK_PATH/tools" ]; then
-            echo "Error: tools directory not found after mv!"
-            exit 1
-          fi
-          ls -l $SDK_PATH/tools
-
-          echo "--- Setting environment variables ---"
-          echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV # Use ANDROID_HOME for buildozer
+          echo "--- Restructuring to the required 'latest' directory ---"
+          mkdir -p $SDK_PATH/cmdline-tools/latest
+          mv $SDK_PATH/cmdline-tools/* $SDK_PATH/cmdline-tools/latest/
           
-          SDK_MANAGER_PATH="$SDK_PATH/tools/bin/sdkmanager"
-          echo "Expected SDK Manager path: $SDK_MANAGER_PATH"
-          if [ ! -f "$SDK_MANAGER_PATH" ]; then
-            echo "Error: sdkmanager not found at the expected path!"
-            exit 1
-          fi
+          echo "--- Setting environment variables ---"
+          echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
+          
+          SDK_MANAGER_PATH="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
+          echo "SDK Manager path: $SDK_MANAGER_PATH"
 
           echo "--- Accepting licenses ---"
           yes | $SDK_MANAGER_PATH --licenses
