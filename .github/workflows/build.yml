@@ -24,36 +24,29 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Manually Set Up Android SDK and Capture Log
+    - name: Manually Set Up Android SDK
       run: |
-        {
-          SDK_PATH="/home/runner/android-sdk"
-          mkdir -p $SDK_PATH
+        SDK_PATH="/home/runner/android-sdk"
+        mkdir -p $SDK_PATH
 
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
-          rm commandlinetools-linux-9477386_latest.zip
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
+        rm commandlinetools-linux-9477386_latest.zip
 
-          mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
-          mkdir $SDK_PATH/cmdline-tools
-          mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
-          
-          SDK_MANAGER="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
-          
-          # Accept licenses with --sdk_root flag
-          yes | $SDK_MANAGER --sdk_root=$SDK_PATH --licenses || true
-          
-          # Install platforms and tools (include android-28 as fallback base)
-          $SDK_MANAGER --sdk_root=$SDK_PATH "platforms;android-34" "platforms;android-28" "build-tools;34.0.0" "platform-tools"
+        mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
+        mkdir $SDK_PATH/cmdline-tools
+        mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
+        
+        SDK_MANAGER="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
+        
+        yes | $SDK_MANAGER --sdk_root=$SDK_PATH --licenses || true
+        $SDK_MANAGER --sdk_root=$SDK_PATH "platforms;android-34" "platforms;android-28" "build-tools;34.0.0" "platform-tools"
 
-          # Restructure for buildozer
-          mv $SDK_PATH/cmdline-tools/latest/* $SDK_PATH/cmdline-tools/
-          rmdir $SDK_PATH/cmdline-tools/latest
-          mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
+        mv $SDK_PATH/cmdline-tools/latest/* $SDK_PATH/cmdline-tools/
+        rmdir $SDK_PATH/cmdline-tools/latest
+        mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
 
-          echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
-        } > sdk_setup.log 2>&1
-        exit ${PIPESTATUS[0]}
+        echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
 
     - name: Install dependencies
       run: |
@@ -64,18 +57,17 @@ jobs:
       run: |
         keytool -genkey -v -keystore release.keystore -alias taikomini -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=TaikoMini, OU=Dev, O=TaikoMini, L=City, S=State, C=CN"
 
-    - name: Build with Buildozer and Capture Full Log
+    - name: Build with Buildozer
       run: |
         sudo chown -R $(whoami) .
 
-        # Inject keystore configuration
         sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
         sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = 123456|" buildozer.spec
         sed -i "s|^android.release_key_alias =.*|android.release_key_alias = taikomini|" buildozer.spec
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = 123456|" buildozer.spec
         
-        buildozer -v android release > build_output.log 2>&1
-        exit ${PIPESTATUS[0]}
+        # Run buildozer with output visible
+        buildozer -v android release
 
     - name: Upload APK
       if: success()
@@ -83,13 +75,3 @@ jobs:
       with:
         name: taikomini-release
         path: bin/*.apk
-
-    - name: Upload Logs on Failure
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: |
-          sdk_setup.log
-          build_output.log
-        if-no-files-found: ignore
