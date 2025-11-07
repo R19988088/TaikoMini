@@ -60,24 +60,19 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython
 
-    - name: Decode Keystore
-      env:
-        KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+    - name: Generate Keystore
       run: |
-        echo $KEYSTORE_B64 | base64 --decode > release.keystore
+        keytool -genkey -v -keystore release.keystore -alias taikomini -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=TaikoMini, OU=Dev, O=TaikoMini, L=City, S=State, C=CN"
 
     - name: Build with Buildozer and Capture Full Log
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
       run: |
         sudo chown -R $(whoami) .
 
+        # Inject keystore configuration
         sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
-        sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = $KEYSTORE_PASSWORD|" buildozer.spec
-        sed -i "s|^android.release_key_alias =.*|android.release_key_alias = $KEY_ALIAS|" buildozer.spec
-        sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = $KEY_ALIAS_PASSWORD|" buildozer.spec
+        sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = 123456|" buildozer.spec
+        sed -i "s|^android.release_key_alias =.*|android.release_key_alias = taikomini|" buildozer.spec
+        sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = 123456|" buildozer.spec
         
         buildozer -v android release > build_output.log 2>&1
         exit ${PIPESTATUS[0]}
