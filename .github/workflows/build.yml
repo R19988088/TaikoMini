@@ -38,11 +38,16 @@ jobs:
           rm commandlinetools-linux-9477386_latest.zip
 
           echo "--- Restructuring SDK directory ---"
-          # Rename the unzipped 'cmdline-tools' to 'tools' to match the path buildozer expects.
+          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
+          # We just need to rename it to 'tools' to match the path buildozer expects.
           mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
 
           echo "--- Verifying directory structure ---"
           ls -l $SDK_PATH
+          if [ ! -d "$SDK_PATH/tools" ]; then
+            echo "Error: tools directory not found after mv!"
+            exit 1
+          fi
           ls -l $SDK_PATH/tools
 
           echo "--- Setting environment variables ---"
@@ -50,6 +55,10 @@ jobs:
           
           SDK_MANAGER_PATH="$SDK_PATH/tools/bin/sdkmanager"
           echo "Expected SDK Manager path: $SDK_MANAGER_PATH"
+          if [ ! -f "$SDK_MANAGER_PATH" ]; then
+            echo "Error: sdkmanager not found at the expected path!"
+            exit 1
+          fi
 
           echo "--- Accepting licenses ---"
           yes | $SDK_MANAGER_PATH --licenses
