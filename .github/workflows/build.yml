@@ -37,24 +37,26 @@ jobs:
           unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
           rm commandlinetools-linux-9477386_latest.zip
 
-          echo "--- Restructuring to the required 'latest' directory ---"
-          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
-          # We rename it to 'latest' and then move it inside a *new* 'cmdline-tools' parent.
-          mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
-          mkdir $SDK_PATH/cmdline-tools
-          mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
-          
-          echo "--- Setting environment variables ---"
-          echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
+          echo "--- Step 1: Creating modern '/latest' structure for sdkmanager ---"
+          mkdir -p $SDK_PATH/cmdline-tools/latest
+          mv $SDK_PATH/cmdline-tools/* $SDK_PATH/cmdline-tools/latest/
           
           SDK_MANAGER_PATH="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
-          echo "SDK Manager path: $SDK_MANAGER_PATH"
+          echo "SDK Manager path for setup: $SDK_MANAGER_PATH"
 
-          echo "--- Accepting licenses ---"
+          echo "--- Accepting licenses and installing tools with modern sdkmanager ---"
           yes | $SDK_MANAGER_PATH --licenses
-
-          echo "--- Installing platform-tools and build-tools ---"
           $SDK_MANAGER_PATH "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+          echo "--- Step 2: Restructuring for old buildozer - renaming to '/tools' ---"
+          mv $SDK_PATH/cmdline-tools/latest $SDK_PATH/tools
+
+          echo "--- Setting final environment variables ---"
+          echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
+          
+          echo "--- Final SDK structure verification ---"
+          ls -lR $SDK_PATH
+
           echo "--- SDK setup complete ---"
         } > sdk_setup.log 2>&1
         exit ${PIPESTATUS[0]}
