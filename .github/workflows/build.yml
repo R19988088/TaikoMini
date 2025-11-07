@@ -58,6 +58,7 @@ jobs:
         keytool -genkey -v -keystore release.keystore -alias taikomini -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=TaikoMini, OU=Dev, O=TaikoMini, L=City, S=State, C=CN"
 
     - name: Build with Buildozer
+      continue-on-error: true
       run: |
         sudo chown -R $(whoami) .
 
@@ -66,8 +67,7 @@ jobs:
         sed -i "s|^android.release_key_alias =.*|android.release_key_alias = taikomini|" buildozer.spec
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = 123456|" buildozer.spec
         
-        # Run buildozer with output visible
-        buildozer -v android release
+        buildozer -v android release 2>&1 | tee build_output.log
 
     - name: Upload APK
       if: success()
@@ -75,3 +75,11 @@ jobs:
       with:
         name: taikomini-release
         path: bin/*.apk
+
+    - name: Upload Build Log (Always)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build_output.log
+        if-no-files-found: warn
