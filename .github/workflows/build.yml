@@ -29,7 +29,7 @@ jobs:
         # Run the entire setup in a block and redirect all output to a log file
         {
           echo "--- Setting up Android SDK ---"
-          SDK_PATH="/home/runner/android-sdk" # Use a simpler, non-buildozer path
+          SDK_PATH="/home/runner/android-sdk"
           mkdir -p $SDK_PATH
 
           echo "--- Downloading SDK command-line tools ---"
@@ -38,8 +38,11 @@ jobs:
           rm commandlinetools-linux-9477386_latest.zip
 
           echo "--- Restructuring to the required 'latest' directory ---"
-          mkdir -p $SDK_PATH/cmdline-tools/latest
-          mv $SDK_PATH/cmdline-tools/* $SDK_PATH/cmdline-tools/latest/
+          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
+          # We rename it to 'latest' and then move it inside a *new* 'cmdline-tools' parent.
+          mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
+          mkdir $SDK_PATH/cmdline-tools
+          mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
           
           echo "--- Setting environment variables ---"
           echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
