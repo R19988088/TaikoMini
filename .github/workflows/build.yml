@@ -26,48 +26,32 @@ jobs:
 
     - name: Manually Set Up Android SDK and Capture Log
       run: |
-        # Run the entire setup in a block and redirect all output to a log file
         {
-          echo "--- Setting up Android SDK ---"
           SDK_PATH="/home/runner/android-sdk"
           mkdir -p $SDK_PATH
 
-          echo "--- Downloading SDK command-line tools ---"
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
+          unzip -q commandlinetools-linux-9477386_latest.zip -d $SDK_PATH
           rm commandlinetools-linux-9477386_latest.zip
 
-          echo "--- Step 1: Create the modern '/latest' structure for sdkmanager ---"
-          # The unzipped folder is '$SDK_PATH/cmdline-tools'.
-          # We rename it to 'latest' and then move it inside a *new* 'cmdline-tools' parent.
           mv $SDK_PATH/cmdline-tools $SDK_PATH/latest
           mkdir $SDK_PATH/cmdline-tools
           mv $SDK_PATH/latest $SDK_PATH/cmdline-tools/
           
-          SDK_MANAGER_PATH="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
-          echo "SDK Manager path for setup: $SDK_MANAGER_PATH"
+          SDK_MANAGER="$SDK_PATH/cmdline-tools/latest/bin/sdkmanager"
+          
+          # Accept licenses with --sdk_root flag
+          yes | $SDK_MANAGER --sdk_root=$SDK_PATH --licenses || true
+          
+          # Install platforms and tools (include android-28 as fallback base)
+          $SDK_MANAGER --sdk_root=$SDK_PATH "platforms;android-34" "platforms;android-28" "build-tools;34.0.0" "platform-tools"
 
-          echo "--- Accepting licenses and installing tools with modern sdkmanager ---"
-          yes | $SDK_MANAGER_PATH --licenses
-          $SDK_MANAGER_PATH "platforms;android-34" "build-tools;34.0.0" "platform-tools"
-
-          echo "--- Step 2: Restructure for old buildozer - rename to '/tools' ---"
-          # Buildozer/p4a expects the tools to be in a top-level 'tools' directory.
-          # So, we rename the 'cmdline-tools/latest' directory to 'tools'.
-          # First, move the contents up one level to get rid of 'latest'.
+          # Restructure for buildozer
           mv $SDK_PATH/cmdline-tools/latest/* $SDK_PATH/cmdline-tools/
-          rm -rf $SDK_PATH/cmdline-tools/latest
-          # Now, rename 'cmdline-tools' to 'tools'.
+          rmdir $SDK_PATH/cmdline-tools/latest
           mv $SDK_PATH/cmdline-tools $SDK_PATH/tools
 
-
-          echo "--- Setting final environment variables ---"
           echo "ANDROID_HOME=$SDK_PATH" >> $GITHUB_ENV
-          
-          echo "--- Final SDK structure verification ---"
-          ls -lR $SDK_PATH
-
-          echo "--- SDK setup complete ---"
         } > sdk_setup.log 2>&1
         exit ${PIPESTATUS[0]}
 
@@ -88,16 +72,13 @@ jobs:
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
       run: |
-        # Force ownership of all files to the current user to fix permission issues.
         sudo chown -R $(whoami) .
 
-        # Inject secrets for signing
         sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
         sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = $KEYSTORE_PASSWORD|" buildozer.spec
         sed -i "s|^android.release_key_alias =.*|android.release_key_alias = $KEY_ALIAS|" buildozer.spec
         sed -i "s|^android.release_key_alias_password =.*|android.release_key_alias_password = $KEY_ALIAS_PASSWORD|" buildozer.spec
         
-        # Run buildozer, saving all output (stdout and stderr) to a log file
         buildozer -v android release > build_output.log 2>&1
         exit ${PIPESTATUS[0]}
 
