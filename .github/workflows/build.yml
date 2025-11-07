@@ -76,6 +76,9 @@ jobs:
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
       run: |
+        # Force ownership of all files to the current user to fix permission issues.
+        sudo chown -R $(whoami) .
+
         # Inject secrets for signing
         sed -i "s|^android.release_key_store =.*|android.release_key_store = release.keystore|" buildozer.spec
         sed -i "s|^android.release_key_store_password =.*|android.release_key_store_password = $KEYSTORE_PASSWORD|" buildozer.spec
