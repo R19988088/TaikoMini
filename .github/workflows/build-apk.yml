@@ -43,9 +43,9 @@ jobs:
         echo "android.keyalias = taikomini" >> buildozer.spec
         echo "android.keyalias_pass = 123456" >> buildozer.spec
         
-    - name: Build APK
+    - name: Build APK with verbose logging
       run: |
-        buildozer android debug
+        buildozer -v android debug
         
     - name: Upload APK
       uses: actions/upload-artifact@v4
