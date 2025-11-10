@@ -24,10 +24,24 @@ jobs:
         python -m pip install --upgrade pip
         pip install pygame
         
-    - name: Install buildozer
+    - name: Install buildozer and JDK
       run: |
         pip install buildozer
         sudo apt install -y git zip unzip openjdk-11-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+        echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
+        
+    - name: Generate keystore
+      run: |
+        keytool -genkey -v -keystore taikomini.keystore -alias taikomini -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=TaikoMini, OU=TaikoMini, O=TaikoMini, L=TaikoMini, ST=TaikoMini, C=CN"
+        
+    - name: Configure buildozer to use fixed keystore
+      run: |
+        mkdir -p ~/.buildozer/android
+        cp taikomini.keystore ~/.buildozer/android/
+        echo "android.keystore = ~/.buildozer/android/taikomini.keystore" >> buildozer.spec
+        echo "android.keystore_pass = 123456" >> buildozer.spec
+        echo "android.keyalias = taikomini" >> buildozer.spec
+        echo "android.keyalias_pass = 123456" >> buildozer.spec
         
     - name: Build APK
       run: |
