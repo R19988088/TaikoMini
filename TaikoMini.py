@@ -71,6 +71,21 @@ screen = pygame.display.set_mode(
 )
 pygame.display.set_caption("TaikoMini - Simplified Taiko")
 
+def select_songs_directory():
+    """
+    For Android: Allow user to select songs directory at startup
+    For PC: Use default 'songs' folder
+    """
+    # Check if we're on Android
+    if 'ANDROID_BOOTSTRAP' in os.environ or 'ANDROID_ARGUMENT' in os.environ:
+        # For Android, we would implement directory selection here
+        # This is a simplified version - in reality, we would use Android-specific APIs
+        print("Android detected. Please ensure songs are placed in the appropriate directory.")
+        return Path("songs")
+    else:
+        # Standard PC behavior
+        return Path("songs")
+
 def main():
     # 内存监控已禁用以提升性能
     # memory_monitor = get_monitor()
@@ -81,7 +96,7 @@ def main():
     game_settings = GameSettings()
     
     # Find songs folder
-    tja_folder = Path("songs")
+    tja_folder = select_songs_directory()
     if not tja_folder.exists():
         print("Error: 'songs' folder not found!")
         print("Please create a 'songs' folder and add .tja files with .ogg audio")
@@ -225,4 +240,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
