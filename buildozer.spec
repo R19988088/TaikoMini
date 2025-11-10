@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,ttf,ogg,mp3,wav,tja
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = __pycache__, .git, .github, tests, docs
+source.exclude_dirs = __pycache__, .git, .github, tests, docs, bin
 
 # (list) List of exclusions using pattern matching
 #source.exclude_patterns = license,images/*/*.jpg
@@ -95,6 +95,12 @@ orientation = portrait
 
 # (str) The Android arch to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
 android.arch = arm64-v8a
+
+# (int) Target Android API, should be as high as possible.
+android.api = 34
+
+# (int) Minimum API your APK will support.
+android.minapi = 21
 
 [app@debug]
 # (str) Title of your application
