@@ -34,12 +34,10 @@ jobs:
       run: |
         keytool -genkey -v -keystore taikomini.keystore -alias taikomini -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=TaikoMini, OU=TaikoMini, O=TaikoMini, L=TaikoMini, ST=TaikoMini, C=CN"
         
-    - name: Configure buildozer to use fixed keystore and fix arch warning
+    - name: Configure buildozer to use fixed keystore
       run: |
         mkdir -p ~/.buildozer/android
         cp taikomini.keystore ~/.buildozer/android/
-        # Add the new archs property to fix the warning
-        echo "android.archs = arm64-v8a" >> buildozer.spec
         echo "android.keystore = ~/.buildozer/android/taikomini.keystore" >> buildozer.spec
         echo "android.keystore_pass = 123456" >> buildozer.spec
         echo "android.keyalias = taikomini" >> buildozer.spec
