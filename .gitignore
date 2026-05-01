@@ -1,0 +1,11 @@
+songs/
+__pycache__/
+*.pyc
+.cache/
+venv/
+*.apk
+*.aab
+build/
+dist/
+.buildozer/
+bin/

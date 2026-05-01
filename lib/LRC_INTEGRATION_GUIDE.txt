@@ -1,0 +1,52 @@
+LRC 歌词集成指南
+====================
+
+已创建的文件：
+1. lib/lrc_parser.py - LRC 文件解析器
+2. lib/lyric_renderer.py - 歌词渲染器
+
+使用方法：
+====================
+
+在 lib/game.py 中添加以下代码：
+
+1. 在文件顶部添加导入：
+   from lib.lrc_parser import LRCParser, find_lrc_file
+   from lib.lyric_renderer import LyricRenderer
+
+2. 在 TaikoGame.__init__() 方法中初始化歌词（在创建 renderer 之后）：
+   # 初始化歌词解析器
+   lrc_path = find_lrc_file(self.tja_path)
+   self.lrc_parser = LRCParser(lrc_path) if lrc_path else None
+   
+   # 初始化歌词渲染器
+   self.lyric_renderer = LyricRenderer(self.screen)
+
+3. 在游戏主循环的渲染部分（绘制所有其他元素之后）添加：
+   # 绘制歌词
+   if self.lrc_parser and self.lrc_parser.has_lyrics():
+       current_lyric = self.lrc_parser.get_lyric_at_time(game_time)
+       self.lyric_renderer.draw_lyric(current_lyric)
+
+LRC 文件格式：
+====================
+LRC 文件需要和 TJA 文件同名，放在同一目录下。
+
+例如：
+  songs/1 流行音乐/ado/うっせぇわ.tja
+  songs/1 流行音乐/ado/うっせぇわ.lrc  ← 同名
+
+LRC 格式示例：
+[ti:歌曲标题]
+[ar:艺术家]
+[00:12.00]第一句歌词
+[00:17.20]第二句歌词
+[00:23.50]第三句歌词
+
+歌词显示效果：
+- 位置：屏幕底部（85%高度处）
+- 字体：系统黑体（SimHei），36号加粗
+- 颜色：白色文字 + #4c5f84 深蓝色描边
+- 描边宽度：3像素
+
+
