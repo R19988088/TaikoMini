@@ -11,13 +11,14 @@ requirements = python3,pygame==2.5.2,plyer,android
 orientation = landscape
 fullscreen = 1
 android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,READ_MEDIA_AUDIO,READ_MEDIA_IMAGES,VIBRATE
-android.api = 34
-android.build_tools_version = 34.0.0
+android.api = 30
+android.build_tools_version = 30.0.3
 android.minapi = 21
 android.ndk = 25b
 android.ndk_api = 21
 android.archs = arm64-v8a
 android.accept_sdk_license = True
+android.extra_manifest_application_arguments = ./android_manifest_application.xml
 
 [buildozer]
 log_level = 2

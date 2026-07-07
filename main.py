@@ -7,19 +7,26 @@ import traceback
 
 
 def _crash_log_candidates():
-    candidates = []
+    names = ["TaikoMini-crash.txt", "taikomini_crash.txt"]
+    roots = []
     for env_name in ("ANDROID_ARGUMENT", "ANDROID_PRIVATE"):
         value = os.environ.get(env_name)
         if value:
-            candidates.append(Path(value) / "TaikoMini-crash.txt")
-    candidates.extend(
+            roots.append(Path(value))
+    roots.extend(
         [
-            Path("/sdcard/Download/TaikoMini-crash.txt"),
-            Path("/sdcard/taikomini/TaikoMini-crash.txt"),
-            Path.cwd() / "TaikoMini-crash.txt",
+            Path("/sdcard"),
+            Path("/sdcard/Download"),
+            Path("/sdcard/Documents"),
+            Path("/sdcard/taikomini"),
+            Path("/storage/emulated/0"),
+            Path("/storage/emulated/0/Download"),
+            Path("/storage/emulated/0/Documents"),
+            Path("/storage/emulated/0/taikomini"),
+            Path.cwd(),
         ]
     )
-    return candidates
+    return [root / name for root in roots for name in names]
 
 
 def _write_crash_log(text):
