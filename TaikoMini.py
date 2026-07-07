@@ -9,6 +9,13 @@ import gc
 from pathlib import Path
 import os
 
+# Set SDL environment variables before pygame initializes.
+os.environ['SDL_IME_SHOW_UI'] = '0'
+os.environ['SDL_VIDEO_ALLOW_SCREENSAVER'] = '1'
+os.environ['LANG'] = 'C'
+os.environ['LC_ALL'] = 'C'
+os.environ['SDL_RENDER_VSYNC'] = '1'
+
 # 禁用自动垃圾回收，改为手动控制
 gc.disable()
 print("[GC] Automatic garbage collection disabled")
@@ -18,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from lib.paths import (
     asset_path,
+    is_android,
     resource_dir,
     set_taikomini_root,
     songs_dir,
@@ -33,37 +41,28 @@ from lib.game_settings import GameSettings
 # Initialize Pygame
 pygame.init()
 # Initialize mixer with low latency settings
-pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+try:
+    pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+except Exception as exc:
+    print(f"[WARN] pygame mixer init failed: {exc}")
 
 # Enable high DPI support
-import ctypes
-import locale
-
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-except:
+if sys.platform == "win32":
     try:
-        ctypes.windll.user32.SetProcessDPIAware()
-    except:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
+    try:
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        if hwnd:
+            ctypes.windll.imm32.ImmAssociateContextEx(hwnd, 0, 0)
+    except Exception:
         pass
-
-# Set environment variables BEFORE pygame.init()
-os.environ['SDL_IME_SHOW_UI'] = '0'  # Disable IME UI
-os.environ['SDL_VIDEO_ALLOW_SCREENSAVER'] = '1'
-os.environ['LANG'] = 'C'  # Force C locale
-os.environ['LC_ALL'] = 'C'
-# 启用垂直同步以消除屏幕撕裂和抖动
-os.environ['SDL_RENDER_VSYNC'] = '1'
-
-# Disable IME completely on Windows
-try:
-    import ctypes
-    # Disable IME
-    hwnd = ctypes.windll.user32.GetForegroundWindow()
-    if hwnd:
-        ctypes.windll.imm32.ImmAssociateContextEx(hwnd, 0, 0)
-except:
-    pass
 
 # Window settings (resizable, 9:16 ratio)
 BASE_WIDTH = 720   # Base width
@@ -73,10 +72,17 @@ BASE_HEIGHT = 1280 # Base height (9:16 ratio)
 # SCALED: 自动缩放支持
 # DOUBLEBUF: 双缓冲
 # HWSURFACE: 硬件加速
-screen = pygame.display.set_mode(
-    (BASE_WIDTH, BASE_HEIGHT), 
-    pygame.RESIZABLE | pygame.SCALED | pygame.DOUBLEBUF | pygame.HWSURFACE
-)
+if is_android():
+    display_flags = pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF
+else:
+    display_flags = pygame.RESIZABLE | pygame.SCALED | pygame.DOUBLEBUF | pygame.HWSURFACE
+
+try:
+    screen = pygame.display.set_mode((BASE_WIDTH, BASE_HEIGHT), display_flags)
+except Exception as exc:
+    print(f"[WARN] scaled display init failed: {exc}")
+    fallback_flags = pygame.FULLSCREEN if is_android() else pygame.RESIZABLE
+    screen = pygame.display.set_mode((BASE_WIDTH, BASE_HEIGHT), fallback_flags)
 pygame.display.set_caption("TaikoMini - Simplified Taiko")
 
 
