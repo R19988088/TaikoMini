@@ -1,11 +1,36 @@
-songs/
+# Python/runtime caches
 __pycache__/
-*.pyc
+*.py[cod]
 .cache/
+.pytest_cache/
 venv/
+.venv/
+
+# Build outputs
 *.apk
 *.aab
 build/
 dist/
 .buildozer/
 bin/
+
+# Local editor/tool state
+.idea/
+.vscode/
+.dart_tool/
+
+# Local backups and reference checkouts
+！新的 不用了/
+.reference/
+
+# Local song libraries and generated player data
+songs/
+taikomini/songs/
+taikomini/scores.ini
+taikomini/song_select.ini
+taikomini/taikomini_root.txt
+old_desktop_*.log
+
+# Local helper scripts that are not part of the app source
+push_to_github.bat
+view_github_error.bat
