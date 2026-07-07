@@ -4,11 +4,14 @@ Python/Pygame Taiko rhythm game prototype.
 
 ## Build APK
 
-Android APK builds run on GitHub Actions with Buildozer:
+Release builds run on GitHub Actions:
 
 1. Open the repository Actions tab.
-2. Run **Build Android APK**.
-3. Download the `TaikoMini-debug-apk` artifact.
+2. Run **Build Releases**.
+3. Download the needed artifact:
+   - `TaikoMini-android-debug.apk`
+   - `TaikoMini-windows.exe`
+   - `TaikoMini-macos.dmg`
 
 The repository intentionally does not include the local song library. Put songs on the device under one of these folders:
 

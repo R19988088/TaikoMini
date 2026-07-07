@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Releases
 
 on:
   workflow_dispatch:
@@ -7,9 +7,11 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  APP_NAME: TaikoMini
 
 jobs:
   build-apk:
+    name: Build APK
     runs-on: ubuntu-22.04
 
     steps:
@@ -19,13 +21,13 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: "17"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install system dependencies
         run: |
@@ -73,29 +75,121 @@ jobs:
               print(f'{idx + 1}: {lines[idx]}')
           PY
           if [ -s error-summary.log ]; then
-            {
-              echo "::error title=Buildozer failure::$(tail -n 40 error-summary.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
-            }
+            echo "::error title=Buildozer failure::$(tail -n 40 error-summary.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
           fi
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "---- last 220 log lines ----"
           tail -n 220 buildozer-ci.log
           exit 1
 
+      - name: Prepare APK artifact
+        if: env.BUILD_STATUS == '0'
+        run: |
+          mkdir -p artifacts
+          cp bin/*.apk artifacts/${APP_NAME}-android-debug.apk
+
       - name: Upload APK
         if: env.BUILD_STATUS == '0'
         uses: actions/upload-artifact@v4
         with:
-          name: TaikoMini-debug-apk
-          path: bin/*.apk
+          name: TaikoMini-android-debug.apk
+          path: artifacts/TaikoMini-android-debug.apk
 
-      - name: Upload build log
-        if: always()
+      - name: Upload Android build log
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: buildozer-ci-log
+          name: TaikoMini-android-build-log
           path: |
             buildozer-ci.log
             error-summary.log
             .buildozer/android/platform/build-*/dists/*/build.log
           if-no-files-found: ignore
+
+  build-exe:
+    name: Build EXE
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install desktop build tools
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install pygame==2.5.2 pyinstaller
+
+      - name: Build Windows EXE
+        shell: pwsh
+        run: |
+          @'
+          import os
+          import sys
+
+          if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+              os.chdir(sys._MEIPASS)
+          '@ | Set-Content -Encoding UTF8 pyinstaller_runtime_hook.py
+          pyinstaller --noconfirm --onefile --windowed --name TaikoMini `
+            --runtime-hook pyinstaller_runtime_hook.py `
+            --add-data "lib;lib" `
+            --add-data "taikomini\Resource;taikomini\Resource" `
+            --add-data "taikomini\config.ini;taikomini" `
+            --add-data "taikomini\config_example.ini;taikomini" `
+            TaikoMini.py
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Copy-Item dist\TaikoMini.exe artifacts\TaikoMini-windows.exe
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaikoMini-windows.exe
+          path: artifacts/TaikoMini-windows.exe
+
+  build-dmg:
+    name: Build DMG
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install desktop build tools
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install pygame==2.5.2 pyinstaller
+
+      - name: Build macOS DMG
+        run: |
+          cat > pyinstaller_runtime_hook.py <<'PY'
+          import os
+          import sys
+
+          if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+              os.chdir(sys._MEIPASS)
+          PY
+          pyinstaller --noconfirm --windowed --name TaikoMini \
+            --runtime-hook pyinstaller_runtime_hook.py \
+            --add-data "lib:lib" \
+            --add-data "taikomini/Resource:taikomini/Resource" \
+            --add-data "taikomini/config.ini:taikomini" \
+            --add-data "taikomini/config_example.ini:taikomini" \
+            TaikoMini.py
+          mkdir -p dmg-root artifacts
+          cp -R dist/TaikoMini.app dmg-root/
+          hdiutil create -volname "TaikoMini" -srcfolder dmg-root -ov -format UDZO artifacts/TaikoMini-macos.dmg
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaikoMini-macos.dmg
+          path: artifacts/TaikoMini-macos.dmg

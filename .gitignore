@@ -26,6 +26,8 @@ bin/
 # Local song libraries and generated player data
 songs/
 taikomini/songs/
+scores.ini
+song_select.ini
 taikomini/scores.ini
 taikomini/song_select.ini
 taikomini/taikomini_root.txt
