@@ -91,15 +91,17 @@ jobs:
 
       - name: Upload APK
         if: env.BUILD_STATUS == '0'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
+          archive: false
           name: TaikoMini-android-debug.apk
           path: artifacts/TaikoMini-android-debug.apk
 
       - name: Upload Android build log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
+          archive: false
           name: TaikoMini-android-build-log
           path: |
             buildozer-ci.log
@@ -146,8 +148,9 @@ jobs:
           Copy-Item dist\TaikoMini.exe artifacts\TaikoMini-windows.exe
 
       - name: Upload EXE
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
+          archive: false
           name: TaikoMini-windows.exe
           path: artifacts/TaikoMini-windows.exe
 
@@ -190,7 +193,8 @@ jobs:
           hdiutil create -volname "TaikoMini" -srcfolder dmg-root -ov -format UDZO artifacts/TaikoMini-macos.dmg
 
       - name: Upload DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
+          archive: false
           name: TaikoMini-macos.dmg
           path: artifacts/TaikoMini-macos.dmg
