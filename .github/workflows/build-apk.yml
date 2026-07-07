@@ -68,10 +68,11 @@ jobs:
           hits = [i for i, line in enumerate(lines) if any(n in line.lower() for n in needles)]
           selected = []
           for i in hits[-12:]:
-              start = max(0, i - 3)
+              before = 220 if "ccache" in lines[i].lower() else 12
+              start = max(0, i - before)
               end = min(len(lines), i + 25)
               selected.extend(range(start, end))
-          for idx in sorted(set(selected))[-260:]:
+          for idx in sorted(set(selected))[-520:]:
               print(f'{idx + 1}: {lines[idx]}')
           PY
           if [ -s error-summary.log ]; then
