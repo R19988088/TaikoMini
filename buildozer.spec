@@ -4,8 +4,8 @@ package.name = taikomini
 package.domain = org.taikomini
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,gif,tif,wav,ogg,ttf,txt,json,kv,ini,mp3,tja
-source.exclude_dirs = songs,taikomini/songs,.git,__pycache__,.buildozer,bin,build,dist,.dart_tool,.idea,.reference,！新的 不用了
-source.exclude_patterns = */__pycache__/*,*.pyc,*.apk,*.aab,old_desktop_*.log
+source.exclude_dirs = songs,.git,__pycache__,.buildozer,bin
+source.exclude_patterns = */__pycache__/*,*.pyc
 version = 0.1
 requirements = python3,pygame==2.5.2,numpy,plyer,android
 orientation = landscape
